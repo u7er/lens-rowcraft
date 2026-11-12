@@ -1,0 +1,28 @@
+<div id="workload-layout-preview" class="viz-dotted-background">
+  <section class="lwr-product" aria-label="Workload layout editor">
+    <header class="lwr-product-heading">Workload layout</header>
+    <div id="workload-layout-editor"></div>
+    <div id="workload-layout-result" role="status" aria-live="polite"></div>
+  </section>
+</div>
+<style>
+  #workload-layout-preview {
+    --lwr-text: light-dark(#29364a, #e1e8f2);
+    --lwr-muted: light-dark(#667387, #a4b3c7);
+    --lwr-surface: light-dark(#ffffff, #202b3b);
+    --lwr-fill: light-dark(#f6f8fb, #263346);
+    --lwr-border: light-dark(#dce3ed, #45546a);
+    --lwr-accent: light-dark(#276cb5, #296fb7);
+    --lwr-hover: light-dark(#edf3fb, #354760);
+    --lwr-ok: light-dark(#24814b, #7fd3a2);
+    --lwr-error: light-dark(#c6374a, #ff94a2);
+    color-scheme: light dark;
+  }
+  #workload-layout-preview .lwr-product { background: var(--lwr-surface); color: var(--lwr-text); padding: 20px; border: 1px solid var(--lwr-border); border-radius: 12px; }
+  #workload-layout-preview .lwr-product-heading { font: 500 17px/1.4 system-ui, sans-serif; margin-bottom: 16px; }
+  #workload-layout-preview .lwr-lanes { max-height: none; }
+  #workload-layout-preview #workload-layout-result { font: 12px/1.5 system-ui, sans-serif; color: var(--lwr-muted); }
+  @media (max-width: 520px) { #workload-layout-preview .lwr-product { padding: 12px; } }
+</style>
+<!--editor-css-->
+<!--editor-script-->
