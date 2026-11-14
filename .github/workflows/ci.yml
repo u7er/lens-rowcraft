@@ -26,6 +26,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Audit dependencies
+        run: npm audit --audit-level=low
       - name: Install browser
         run: npx --no-install playwright-core install --with-deps chromium
       - name: Tests, browser checks and build

@@ -55,5 +55,32 @@ try {
   assert.equal(await page.locator('[data-lwr-auto]').count(), 0);
   await page.evaluate(() => window.fixture.clear());
   assert.equal(await page.locator('[data-lwr-cell]').count(), 0);
+  const dialogBundle = await build({
+    stdin: { contents: `
+      import { createRoot } from "react-dom/client";
+      import { LayoutEditorDialog } from "./src/editor-dialog.tsx";
+      import { editorCss } from "./src/editor-styles.ts";
+      const style = document.createElement("style");
+      style.textContent = editorCss;
+      document.head.append(style);
+      document.body.innerHTML = '<div id="dialog-host" style="display:flex;justify-content:center"></div>';
+      createRoot(document.getElementById("dialog-host")).render(<LayoutEditorDialog
+        tables={[{ id: "pods", fields: ["name", "cpu", "memory", "node", "status", "age"].map(id => ({ id, label: id })) }]}
+        settings={{ version: 1, enabled: true, tables: {} }} onApply={() => {}} onCancel={() => {}} />);
+    `, resolveDir: process.cwd(), loader: "tsx" },
+    bundle: true, write: false, format: "iife", platform: "browser", jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' },
+  });
+  await page.addScriptTag({ content: dialogBundle.outputFiles[0].text });
+  await page.getByRole('dialog', { name: 'Workload layout' }).waitFor();
+  for (const width of [1800, 900, 560]) {
+    await page.setViewportSize({ width, height: 420 });
+    const bounds = await page.getByRole('dialog').boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width, `${width}: dialog overflows viewport width`);
+    assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= 420, `${width}: dialog overflows viewport height`);
+    await page.getByRole('button', { name: 'Apply layout', exact: true }).scrollIntoViewIfNeeded();
+    await page.getByRole('button', { name: 'Apply layout', exact: true }).click();
+  }
   console.log('Browser checks pass: 1800/900/560px, content widths, no overlap, warning placement, original links, static mode and cleanup.');
+  console.log('Dialog checks pass: accessible title, viewport bounds and reachable Apply button at 1800/900/560px.');
 } finally { await browser.close(); }

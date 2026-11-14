@@ -8,10 +8,46 @@ import React, { act } from "react";
 
 const require = createRequire(import.meta.url);
 const bundle = await build({
-  entryPoints: ["src/editor.tsx"], bundle: true, write: false, format: "esm", platform: "browser", jsx: "automatic",
+  stdin: { contents: 'export * from "./src/editor.tsx"; export * from "./src/editor-dialog.tsx";', resolveDir: process.cwd(), loader: "tsx" },
+  bundle: true, write: false, format: "esm", platform: "browser", jsx: "automatic",
   plugins: [{ name: "shared-react", setup(build) { build.onResolve({ filter: /^react(?:\/.*)?$/ }, ({ path }) => ({ path: pathToFileURL(require.resolve(path)).href, external: true })); } }],
 });
-const { LayoutEditor } = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}`);
+const { LayoutEditor, LayoutEditorDialog } = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}`);
+
+test("dialog has an accessible title, applies settings and dismisses without saving on Close or Cancel", async () => {
+  const dom = new JSDOM('<body><div id="app"></div></body>', { pretendToBeVisual: true });
+  const keys = ["window", "document", "HTMLElement", "IS_REACT_ACT_ENVIRONMENT"];
+  const saved = new Map(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(dom.window.document.querySelector("#app"));
+  let applied;
+  let cancelled = 0;
+  const settings = { version: 1, enabled: true, tables: {} };
+  try {
+    await act(async () => root.render(React.createElement(LayoutEditorDialog, {
+      tables: [{ id: "pods", fields: [{ id: "name", label: "Name" }] }], settings,
+      onApply: (value) => { applied = value; }, onCancel: () => { cancelled++; },
+    })));
+    const dialog = dom.window.document.querySelector('[role="dialog"]');
+    assert.equal(dialog.getAttribute("aria-modal"), "true");
+    assert.equal(dom.window.document.getElementById(dialog.getAttribute("aria-labelledby")).textContent, "Workload layout");
+    await act(async () => dialog.querySelector('[aria-label="Close layout editor"]').click());
+    await act(async () => [...dialog.querySelectorAll("button")].find((button) => button.textContent === "Cancel").click());
+    assert.equal(cancelled, 2);
+    assert.equal(applied, undefined);
+    await act(async () => [...dialog.querySelectorAll("button")].find((button) => button.textContent === "Apply layout").click());
+    assert.equal(applied.tables.pods.fields[0].id, "name");
+    assert.deepEqual(settings.tables, {});
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});
 
 test("applying and editing with a Lens-hidden column preserves its configuration and order", async () => {
   const dom = new JSDOM('<body><div id="app"></div></body>', { pretendToBeVisual: true });

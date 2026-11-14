@@ -4,7 +4,7 @@ Status: locally prepared, not published. Version: 0.3.2.
 
 ## GitHub automation
 
-- **CI** runs on Ubuntu for pushes to main and pull requests, and can also be run manually. It runs clean installation, the 18 tests, browser geometry checks, build and package-content validation, then uploads an installable `.tgz` artifact.
+- **CI** runs on Ubuntu for pushes to main and pull requests, and can also be run manually. It runs clean installation, dependency auditing, the 19 tests, browser geometry checks, build and package-content validation, then uploads an installable `.tgz` artifact.
 - After a successful **push to main**, CI creates a GitHub release named after `package.json` (for example `v0.3.2`) and attaches the exact tested archive. Existing releases are left unchanged; increase the package version to create another. Pull requests, manual CI runs and reusable CI calls do not create releases. These GitHub releases are experimental until live Lens testing is complete.
 - **Release** handles npm publishing separately. It repeats CI, checks tag/version agreement and Lens dependency compatibility, then publishes to npm. Prerelease versions use npm's `next` tag and GitHub's prerelease flag.
 - Running **Release** manually is a dry run by default. To publish an existing CI-created tag, run `gh workflow run release.yml --ref v0.3.2 -f publish=true`. Publishing requires a version tag matching `package.json`. A manually pushed version tag also starts publishing. GitHub does not start another workflow for a tag created with its automatic workflow token, so CI-created releases require the explicit publishing step.
@@ -23,7 +23,7 @@ The workflow uses npm trusted publishing as described in the [official npm docum
 ## Local verification (2026-11-14)
 
 - Clean dependency installation completed with Node 24.20.0 on Windows.
-- All 18 automated tests passed, including regressions for extreme widths, temporarily unavailable columns and stale styling on unsupported rows.
+- All 19 automated tests passed, including regressions for extreme widths, temporarily unavailable columns, stale styling on unsupported rows and dialog dismissal.
 - Headless Chrome geometry checks passed at 1800, 900 and 560 pixels.
 - Type checks and production build passed.
 - Standalone editor screenshot generated and visually inspected.
@@ -31,7 +31,7 @@ The workflow uses npm trusted publishing as described in the [official npm docum
 - Public npm lookup returned 404 for `lens-rowcraft`; the name appears unpublished, but this does not reserve or guarantee the name.
 - Public GitHub API lookup returned 404 for `u7er/lens-rowcraft`. Confirm whether the repository is private or missing before publishing links to it.
 - Lens is not available on this machine. Host dependency compatibility, installation of the archive, persistence across Lens restarts and actual Marketplace rendering have not been verified. The publishing guard correctly fails without Lens's generated dependency-version file.
-- npm audit reports 19 transitive findings (3 low, 16 moderate), including Jest dependencies brought in through Lens components. A routine `npm audit fix` did not clear the report. No forced upgrades or compatibility overrides were retained. Review this dependency report on the publishing machine; do not describe the package as audit-clean.
+- `npm audit` reports zero vulnerabilities after removing `@k8slens/modal-components`, whose component dependencies pulled in unrelated Jest tooling. Lens still manages the modal lifecycle through `@k8slens/modal-contracts`; the editor uses a local HTML/CSS content shell. No forced dependency upgrades, audit exclusions or overrides are used. CI audits the full installed dependency tree.
 
 ## Before publication
 

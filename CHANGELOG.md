@@ -1,5 +1,8 @@
 ## 0.3.2
 
+- Remove the modal component dependency that pulled in vulnerable Jest tooling; keep Lens's modal lifecycle with a lightweight editor shell.
+- Add dependency auditing to CI and regression checks for dialog dismissal and sizing.
+
 - Add Ubuntu GitHub CI with package artifacts, automatic GitHub releases for new versions on main, and separate npm publishing using trusted publishing.
 
 - Keep positive grid spans for extreme field-width settings.

@@ -1,4 +1,10 @@
 export const editorCss = `
+.lwr-modal { width: min(1020px, calc(100vw - 48px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; background: var(--contentColor, #fff); color: var(--textColorPrimary, #263548); border: 1px solid var(--borderColor, #cad4df); border-radius: 10px; }
+.lwr-modal-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--borderColor, #cad4df); flex-shrink: 0; }
+.lwr-modal-header h2 { flex: 1; margin: 0; font: 600 14px/1.4 system-ui, sans-serif; text-align: center; }
+.lwr-modal-header button { border: 0; padding: 0 4px; background: transparent; color: inherit; font: 24px/1 system-ui, sans-serif; cursor: pointer; }
+.lwr-modal-header button:focus-visible { outline: 2px solid var(--primary, #2874d0); outline-offset: 2px; }
+.lwr-modal-content { min-height: 0; padding: 24px; overflow: auto; }
 .lwr-editor { color: var(--textColorPrimary, #263548); font: 13px/1.45 system-ui, sans-serif; }
 .lwr-editor *, .lwr-editor *::before, .lwr-editor *::after { box-sizing: border-box; }
 .lwr-editor button, .lwr-editor select { font: inherit; color: inherit; background: var(--contentColor, #fff); border: 1px solid var(--borderColor, #cad4df); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
