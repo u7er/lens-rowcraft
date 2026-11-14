@@ -21,6 +21,8 @@
     "dist",
     "assets",
     "NOTICE",
+    "DEVELOPMENT.md",
+    "RELEASING.md",
     "README.md",
     "CHANGELOG.md"
   ],
@@ -31,8 +33,12 @@
   "scripts": {
     "build": "lens-types-check && lens-extension-dependencies-check && lens-package-build --entry-point ./src/index.ts",
     "preview": "node scripts/build-preview.mjs",
+    "screenshot": "npm run preview && node scripts/capture-preview.mjs",
     "test:browser": "node tests/browser-check.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm test && npm run test:browser && npm run build",
+    "prepack": "npm run build",
+    "prepublishOnly": "lens-extension-publish-check"
   },
   "dependencies": {
     "@k8slens/feature-core": "^7.5.5",
@@ -47,7 +53,7 @@
     "react": "^19.2.0"
   },
   "devDependencies": {
-    "@k8slens/package-build": "^3.3.0",
+    "@k8slens/package-build": "^3.4.0",
     "@k8slens/typescript": "^8.0.0",
     "@tanstack/virtual-core": "3.19.11",
     "@types/react": "^19.2.0",

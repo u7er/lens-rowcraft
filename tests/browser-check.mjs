@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { build } from "esbuild";
-import { chromium } from "playwright-core";
+import { launchBrowser } from "../scripts/browser.mjs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const executablePath = process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const bundle = await build({ entryPoints: ["tests/browser-fixture.ts"], bundle: true, write: false, format: "iife", platform: "browser" });
-const browser = await chromium.launch({ executablePath, headless: true });
+const browser = await launchBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1800, height: 420 }, deviceScaleFactor: 1 });
   await page.setContent('<!doctype html><html><head><title>Workload row layout test</title></head><body></body></html>');

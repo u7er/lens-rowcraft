@@ -18,7 +18,9 @@ export function placements(ids: string[], layout: TableLayout = defaultLayout(id
     let start = 2;
     items.forEach((item, index) => {
       used += item.width;
-      const end = index === items.length - 1 ? 122 : 2 + Math.round(120 * used / total);
+      // Reserve at least one track for this field and every remaining field.
+      const end = index === items.length - 1 ? 122 : Math.max(start + 1,
+        Math.min(122 - (items.length - index - 1), 2 + Math.round(120 * used / total)));
       result.set(item.id, { column: `${start} / ${end}`, line, ...(secondary ? { secondary: true } : {}) });
       start = end;
     });
@@ -46,7 +48,10 @@ export function layoutRow(row: HTMLElement, header = false, layout?: TableLayout
     (header && cell.querySelector("[data-select-all-checkbox-test]") ? "id-0" : "");
   const ids = cells.map(getId);
   // Refuse an unknown structure rather than misplacing controls.
-  if (ids.some((id) => !id) || !ids.some((id) => normalize(id) === "name")) return;
+  if (ids.some((id) => !id) || !ids.some((id) => normalize(id) === "name")) {
+    clearLayout(row);
+    return;
+  }
   const positions = placements(ids, layout);
   const resolved = resolveLayout(ids, layout ?? defaultLayout(ids, "all"));
   const showLabels = Boolean(layout?.labels) || resolved.autoSecondary;
@@ -109,7 +114,7 @@ export function layoutRow(row: HTMLElement, header = false, layout?: TableLayout
 }
 
 export function clearLayout(root: HTMLElement): void {
-  for (const row of root.querySelectorAll(`[${rowAttribute}]`)) {
+  for (const row of [...(root.matches(`[${rowAttribute}]`) ? [root] : []), ...root.querySelectorAll(`[${rowAttribute}]`)]) {
     row.removeAttribute(rowAttribute);
     row.removeAttribute("data-lwr-labels");
     row.removeAttribute("data-lwr-stripe");

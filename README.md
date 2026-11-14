@@ -2,6 +2,12 @@
 
 Customize workload rows in Lens Kubernetes IDE with a visual layout editor, two-line layouts, automatic field widths, and per-view settings.
 
+**Experimental extension.** Targets Lens **2026.11.91422-latest** using an internal row-layout adapter. Live Lens verification is still required before the first public release.
+
+![Standalone layout editor preview with example workloads](assets/screenshots/layout-editor.png)
+
+The screenshot shows the standalone editor preview, using example workloads.
+
 - Balanced layout: **Name**, **Status** and **Age** on the first line, with labeled details underneath.
 - Move any field between lines, change its order and share of space, or hide it.
 - Checkboxes and action menus remain at the edges, spanning both lines.
@@ -18,6 +24,12 @@ Workloads have a subtly tinted first line, alternating between records, and a pl
 
 Use **Rows: 2 lines** to switch back to **Rows: normal**. Your toggle choice is also saved. Disabling or removing the extension restores the original layout.
 
+## Install from Marketplace
+
+Once the first npm release is published, open **Extensions** in Lens, search for **lens-rowcraft**, check the publisher, and choose **Install**. Open a supported workload view and use **Layout…** in the status bar to configure it.
+
+Marketplace installation requires Lens Plus, Pro, Enterprise, or an active trial. See the [Lens Marketplace](https://lenshq.io/extensions) and [Lens extension announcement](https://lenshq.io/blog/lens-release-2026-10). The package is not published yet.
+
 ## Install locally
 
 Clone or download this repository into a permanent folder. The repository includes a ready-to-load `dist/index.js`; building is only required when changing the code.
@@ -25,6 +37,13 @@ Clone or download this repository into a permanent folder. The repository includ
 In Lens, open **Preferences > Extensions > Install from File System** and select this folder's **package.json**. Keep the folder in place: Lens loads the extension directly from it. Open a workload list to try the layout, then click **Layout…** in the bottom-right status bar.
 
 For build instructions and the standalone editor preview, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## Troubleshooting and feedback
+
+- If a view looks wrong, use **Rows: 2 lines** to restore normal rows, or disable the extension in Lens.
+- If a field is missing, first enable it in Lens's own column menu, then check the editor's **Hidden** group.
+- If a Lens update stops the layout working, disable Rowcraft until compatibility is verified.
+- Report problems through the repository's issue tracker once it is public. Include Lens version, OS, workload type, reproduction steps, and a screenshot with sensitive details removed. Do not include kubeconfigs, tokens, or private workload data.
 
 ## Compatibility
 

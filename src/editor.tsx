@@ -24,7 +24,19 @@ export const LayoutEditor = ({ tables, settings, onApply, onCancel }: EditorProp
   const ids = table.fields.map((field) => field.id);
   const layout = resolveLayout(ids, drafts[table.id]);
   const info = new Map(table.fields.map((field) => [field.id, field]));
-  const update = (next: TableLayout) => setDrafts((previous) => ({ ...previous, [table.id]: next }));
+  // Lens can temporarily omit columns. Keep their saved configuration in its
+  // existing slots while replacing visible fields with the editor's new order.
+  const preserveUnavailable = (next: TableLayout, previous?: TableLayout): TableLayout => {
+    const visible = new Set(ids);
+    const remaining = [...next.fields];
+    const fields = (previous?.fields ?? []).flatMap((field) => {
+      if (!visible.has(field.id)) return [field];
+      const replacement = remaining.shift();
+      return replacement ? [replacement] : [];
+    });
+    return { ...next, fields: [...fields, ...remaining] };
+  };
+  const update = (next: TableLayout) => setDrafts((previous) => ({ ...previous, [table.id]: preserveUnavailable(next, previous[table.id]) }));
   const move = (id: string, line: FieldLine, before?: string) => update(moveField(layout, id, line, before));
 
   function drop(event: DragEvent, line: FieldLine, before?: string) {
@@ -123,6 +135,6 @@ export const LayoutEditor = ({ tables, settings, onApply, onCancel }: EditorProp
       <span>Layouts save per workload type. Fields hidden in Lens’s column menu stay hidden.</span>
     </div>
     {layout.autoSecondary && <p className="lwr-help">Detail fields fit their text in each row. Long values shrink when space is limited. Manual widths are kept for when you switch this off.</p>}
-    <div className="lwr-editor-footer"><button type="button" onClick={onCancel}>Cancel</button><button className="lwr-apply" type="button" onClick={() => onApply({ ...settings, tables: { ...drafts, [table.id]: layout } })}>Apply layout</button></div>
+    <div className="lwr-editor-footer"><button type="button" onClick={onCancel}>Cancel</button><button className="lwr-apply" type="button" onClick={() => onApply({ ...settings, tables: { ...drafts, [table.id]: preserveUnavailable(layout, drafts[table.id]) } })}>Apply layout</button></div>
   </div>;
 };

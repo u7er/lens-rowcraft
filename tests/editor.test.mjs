@@ -13,6 +13,57 @@ const bundle = await build({
 });
 const { LayoutEditor } = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}`);
 
+test("applying and editing with a Lens-hidden column preserves its configuration and order", async () => {
+  const dom = new JSDOM('<body><div id="app"></div></body>', { pretendToBeVisual: true });
+  const keys = ["window", "document", "HTMLElement", "IS_REACT_ACT_ENVIRONMENT"];
+  const saved = new Map(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(dom.window.document.querySelector("#app"));
+  const fields = [
+    { id: "name", line: "primary", width: 36 },
+    { id: "node", line: "secondary", width: 23 },
+    { id: "cpu", line: "secondary", width: 5 },
+  ];
+  const settings = { version: 1, enabled: true, tables: { pods: { fields, labels: true, autoSecondary: false } } };
+  let applied;
+  const tables = [{ id: "pods", fields: [{ id: "name", label: "Name" }, { id: "cpu", label: "CPU" }] }];
+  const apply = () => [...dom.window.document.querySelectorAll("button")].find((button) => button.textContent === "Apply layout").click();
+  try {
+    await act(async () => root.render(React.createElement(LayoutEditor, { tables, settings, onApply: (value) => { applied = value; }, onCancel: () => {} })));
+    await act(async () => apply());
+    assert.deepEqual(applied.tables.pods.fields, fields);
+    await act(async () => {
+      const select = dom.window.document.querySelector('[aria-label="Line for CPU"]');
+      Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, "value").set.call(select, "primary");
+      select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    });
+    await act(async () => dom.window.document.querySelector('[aria-label="Move CPU left"]').click());
+    await act(async () => apply());
+    assert.deepEqual(applied.tables.pods.fields.map((field) => field.id), ["cpu", "node", "name"]);
+    assert.deepEqual(applied.tables.pods.fields[1], fields[1]);
+    await act(async () => [...dom.window.document.querySelectorAll("button")].find((button) => button.textContent === "Troubleshooting").click());
+    await act(async () => apply());
+    assert.deepEqual(applied.tables.pods.fields.find((field) => field.id === "node"), fields[1]);
+    assert.equal(applied.tables.pods.fields[1].id, "node");
+    const restoredTables = [{ id: "pods", fields: [...tables[0].fields, { id: "node", label: "Node" }] }];
+    await act(async () => root.render(React.createElement(LayoutEditor, { tables: restoredTables, settings, onApply: (value) => { applied = value; }, onCancel: () => {} })));
+    assert.equal(dom.window.document.querySelector('[aria-label="Width for Node"]').value, "23");
+    assert.deepEqual(settings.tables.pods.fields.map((field) => ({ ...field })), [
+      { id: "name", line: "primary", width: 36 },
+      { id: "node", line: "secondary", width: 23 },
+      { id: "cpu", line: "secondary", width: 5 },
+    ]);
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});
+
 test("editor previews field changes, drag/drop, keyboard reordering, widths, view isolation, presets, apply and cancel", async () => {
   const dom = new JSDOM('<body><div id="app"></div></body>', { pretendToBeVisual: true });
   const keys = ["window", "document", "HTMLElement", "IS_REACT_ACT_ENVIRONMENT"];

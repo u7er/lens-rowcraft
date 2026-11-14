@@ -1,5 +1,13 @@
 ## 0.3.2
 
+- Keep positive grid spans for extreme field-width settings.
+- Preserve saved settings for columns temporarily hidden through Lens when applying editor changes.
+- Clear previous row styling if the host row structure becomes unsupported.
+
+- Add marketplace installation guidance, troubleshooting, and a standalone editor screenshot.
+- Discover Chrome and Edge across Windows, macOS, and Linux for browser checks and preview capture.
+- Rebuild packages before packing and run Lens's publishing compatibility guard before npm publication.
+
 - Prepare the Rowcraft GitHub distribution with Apache 2.0 licensing, repository metadata and a prebuilt extension.
 - Use generic example workloads in previews and tests.
 

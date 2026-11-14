@@ -70,6 +70,47 @@ test("name, status and controller occupy first line; every remaining field occup
   assert.ok(Number(positions.get("name").column.split(" / ")[1]) > 70);
 });
 
+test("extreme width settings keep every field in a positive, nonoverlapping grid span", () => {
+  const ids = ["name", "cpu", "memory", "node", "status", "age"];
+  for (const small of ids) {
+    for (const line of ["primary", "secondary"]) {
+      const layout = { fields: ids.map((id) => ({ id, line, width: id === small ? 1 : 48 })), labels: true, autoSecondary: false };
+      let previousEnd = 2;
+      for (const id of ids) {
+        const [start, end] = placements(ids, layout).get(id).column.split(" / ").map(Number);
+        assert.equal(start, previousEnd);
+        assert.ok(end > start, `${id}: ${start} / ${end}`);
+        assert.ok(end <= 122);
+        previousEnd = end;
+      }
+      assert.equal(previousEnd, 122);
+    }
+  }
+});
+
+test("previously styled rows are cleaned when their structure becomes unsupported", () => {
+  const f = fixture();
+  try {
+    const row = f.document.querySelector("[data-row]");
+    layoutRow(row);
+    row.children[2].removeAttribute("data-column-id");
+    layoutRow(row);
+    assert.equal(row.hasAttribute("data-lwr-row"), false);
+    assert.equal(row.hasAttribute("data-lwr-labels"), false);
+    assert.equal(row.hasAttribute("data-lwr-stripe"), false);
+    assert.equal(row.querySelector("[data-lwr-cell]"), null);
+    assert.equal(row.children[1].style.getPropertyValue("--lwr-column"), "");
+    assert.equal(row.children[1].style.width, "120px");
+    row.children[2].setAttribute("data-column-id", "namespace");
+    layoutRow(row);
+    assert.equal(row.getAttribute("data-lwr-row"), "data");
+    row.children[1].remove();
+    layoutRow(row);
+    assert.equal(row.hasAttribute("data-lwr-row"), false);
+    assert.equal(row.querySelector("[data-lwr-cell]"), null);
+  } finally { f.close(); }
+});
+
 test("missing or hidden primary columns do not leave gaps; extension columns stay on second line", () => {
   const positions = placements(["name", "cpu", "custom.example/image"]);
   assert.deepEqual(positions.get("name"), { line: "1 / 2", column: "2 / 122" });
