@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      LENS_EXTENSION_DEPENDENCY_VERSIONS_FILE: ${{ github.workspace }}/.github/lens-extension-dependency-versions.json
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install browser
+        run: npx --no-install playwright-core install --with-deps chromium
+      - name: Tests, browser checks and build
+        run: npm run check
+      - name: Verify package contents
+        run: npm run check:package
+      - name: Create installable archive
+        run: npm pack
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: package-${{ matrix.os }}
+          path: '*.tgz'
+          if-no-files-found: error
+          retention-days: 14

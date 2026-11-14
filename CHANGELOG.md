@@ -1,5 +1,7 @@
 ## 0.3.2
 
+- Add cross-platform GitHub CI with package artifacts and tag-triggered npm publishing using trusted publishing.
+
 - Keep positive grid spans for extreme field-width settings.
 - Preserve saved settings for columns temporarily hidden through Lens when applying editor changes.
 - Clear previous row styling if the host row structure becomes unsupported.

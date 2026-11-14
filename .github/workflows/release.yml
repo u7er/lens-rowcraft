@@ -1,0 +1,94 @@
+name: Release
+
+# Manual runs verify the release without publishing. Version tags publish.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Verify and publish
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      LENS_EXTENSION_DEPENDENCY_VERSIONS_FILE: ${{ github.workspace }}/.github/lens-extension-dependency-versions.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Check release version
+        id: version
+        shell: bash
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME must match package version v$version."
+            exit 1
+          fi
+          if [[ "$version" == *-* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Use npm with trusted publishing support
+        run: npm install --global npm@11
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check:package
+      - name: Require the real Lens dependency baseline
+        shell: bash
+        run: |
+          if [[ ! -s "$LENS_EXTENSION_DEPENDENCY_VERSIONS_FILE" ]]; then
+            echo "::error::Copy extension-dependency-versions.json from the tested Lens installation to .github/lens-extension-dependency-versions.json. See RELEASING.md."
+            exit 1
+          fi
+      - name: Lens publishing compatibility check
+        run: npm run prepublishOnly
+        env:
+          npm_config_tag: ${{ steps.version.outputs.tag }}
+      - name: Create release archive
+        run: npm pack
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: release-package
+          path: '*.tgz'
+          if-no-files-found: error
+      - name: Publish to npm using trusted publishing
+        if: github.event_name == 'push'
+        run: npm publish --access public --tag '${{ steps.version.outputs.tag }}'
+      - name: Create GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        shell: bash
+        run: |
+          args=(--generate-notes --verify-tag)
+          if [[ "$PRERELEASE" == "true" ]]; then args+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" *.tgz "${args[@]}"
+      - name: Manual verification summary
+        if: github.event_name == 'workflow_dispatch'
+        run: echo 'Release verification passed. Manual runs do not publish to npm or create GitHub releases.' >> "$GITHUB_STEP_SUMMARY"
