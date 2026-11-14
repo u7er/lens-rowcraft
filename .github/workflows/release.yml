@@ -1,10 +1,15 @@
 name: Release
 
-# Manual runs verify the release without publishing. Version tags publish.
+# Manual runs verify by default. Explicit publish runs must select a version tag.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish to npm (run on a version tag only)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +21,8 @@ concurrency:
 jobs:
   validate:
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: write
 
   publish:
     name: Verify and publish
@@ -38,10 +45,12 @@ jobs:
           package-manager-cache: false
       - name: Check release version
         id: version
+        env:
+          PUBLISH_REQUESTED: ${{ github.event_name == 'push' || inputs.publish }}
         shell: bash
         run: |
           version="$(node -p 'require("./package.json").version')"
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" != "v$version" ]]; then
+          if [[ "$PUBLISH_REQUESTED" == "true" && ( "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "v$version" ) ]]; then
             echo "::error::Tag $GITHUB_REF_NAME must match package version v$version."
             exit 1
           fi
@@ -76,10 +85,10 @@ jobs:
           path: '*.tgz'
           if-no-files-found: error
       - name: Publish to npm using trusted publishing
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.publish
         run: npm publish --access public --tag '${{ steps.version.outputs.tag }}'
       - name: Create GitHub release
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.publish
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -88,7 +97,11 @@ jobs:
         run: |
           args=(--generate-notes --verify-tag)
           if [[ "$PRERELEASE" == "true" ]]; then args+=(--prerelease); fi
-          gh release create "$RELEASE_TAG" *.tgz "${args[@]}"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "GitHub release already exists; keeping its original tested archive."
+          else
+            gh release create "$RELEASE_TAG" *.tgz "${args[@]}"
+          fi
       - name: Manual verification summary
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && !inputs.publish
         run: echo 'Release verification passed. Manual runs do not publish to npm or create GitHub releases.' >> "$GITHUB_STEP_SUMMARY"

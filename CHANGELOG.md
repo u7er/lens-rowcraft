@@ -1,6 +1,6 @@
 ## 0.3.2
 
-- Add cross-platform GitHub CI with package artifacts and tag-triggered npm publishing using trusted publishing.
+- Add Ubuntu GitHub CI with package artifacts, automatic GitHub releases for new versions on main, and separate npm publishing using trusted publishing.
 
 - Keep positive grid spans for extreme field-width settings.
 - Preserve saved settings for columns temporarily hidden through Lens when applying editor changes.
