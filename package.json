@@ -1,8 +1,11 @@
 {
-  "name": "lens-rowcraft",
+  "name": "@u7er/lens-rowcraft",
   "version": "0.3.2",
   "description": "Configurable two-line workload rows with a visual layout editor and saved per-view layouts.",
   "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "Pavel Manakov",
   "repository": {
     "type": "git",

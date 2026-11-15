@@ -1,15 +1,10 @@
 name: Release
 
-# Manual runs verify by default. Explicit publish runs must select a version tag.
+# Only pushed version tags stage npm releases. Manual runs validate without publishing.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Publish to npm (run on a version tag only)
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -21,11 +16,9 @@ concurrency:
 jobs:
   validate:
     uses: ./.github/workflows/ci.yml
-    permissions:
-      contents: write
 
   publish:
-    name: Verify and publish
+    name: Verify and stage release
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -46,7 +39,7 @@ jobs:
       - name: Check release version
         id: version
         env:
-          PUBLISH_REQUESTED: ${{ github.event_name == 'push' || inputs.publish }}
+          PUBLISH_REQUESTED: ${{ github.event_name == 'push' }}
         shell: bash
         run: |
           version="$(node -p 'require("./package.json").version')"
@@ -62,7 +55,7 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Use npm with trusted publishing support
-        run: npm install --global npm@11
+        run: npm install --global npm@11.15.0
       - run: npm ci
       - run: npm run build
       - run: npm run check:package
@@ -84,24 +77,27 @@ jobs:
           name: release-package
           path: '*.tgz'
           if-no-files-found: error
-      - name: Publish to npm using trusted publishing
-        if: github.event_name == 'push' || inputs.publish
-        run: npm publish --access public --tag '${{ steps.version.outputs.tag }}'
-      - name: Create GitHub release
-        if: github.event_name == 'push' || inputs.publish
+      - name: Stage npm release using trusted publishing
+        if: github.event_name == 'push'
+        run: npm stage publish --access public --tag '${{ steps.version.outputs.tag }}'
+      - name: Create draft GitHub release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
         shell: bash
         run: |
-          args=(--generate-notes --verify-tag)
+          args=(--generate-notes --verify-tag --draft)
           if [[ "$PRERELEASE" == "true" ]]; then args+=(--prerelease); fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "GitHub release already exists; keeping its original tested archive."
           else
             gh release create "$RELEASE_TAG" *.tgz "${args[@]}"
           fi
+      - name: Staged release summary
+        if: github.event_name == 'push'
+        run: echo 'Package staged on npm. Review and approve it with 2FA, then publish the draft GitHub release. The npm version is not live until approved.' >> "$GITHUB_STEP_SUMMARY"
       - name: Manual verification summary
-        if: github.event_name == 'workflow_dispatch' && !inputs.publish
+        if: github.event_name == 'workflow_dispatch'
         run: echo 'Release verification passed. Manual runs do not publish to npm or create GitHub releases.' >> "$GITHUB_STEP_SUMMARY"
