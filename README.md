@@ -4,7 +4,14 @@ Customize Lens workload tables with two-line rows and a visual layout editor.
 
 ![Layout editor preview](assets/screenshots/layout-editor.png)
 
-## Install from Marketplace (WIP)
+## Install from Marketplace
+
+[Install lens-rowcraft plugin](https://app.k8slens.dev/lens-launcher?c=lens%3A%2F%2Fapp%2Fopen%2Fextension%3Fname%3D@u7er/lens-rowcraft) via direct lens marketplace link
+
+Search for
+```
+@u7er/lens-rowcraft
+```
 
 ## Compatibility
 
